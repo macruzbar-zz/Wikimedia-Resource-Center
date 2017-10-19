@@ -3,7 +3,7 @@ A single point of entry for all Wikimedia-related resources
 
 Hi! Welcome to the Wikimedia Resource Center project page on Github. This is a space for developers to contribute to the development of a gadget to build a directory on wiki. 
 
-##Background
+## Background
 The [Wikimedia Resource Center] (https://meta.wikimedia.org/wiki/Wikimedia_Resource_Center) was designed as a single point of entry to all Wikimedia-related resources. This includes: contact and questions, program guides, skills support, program support, resources for developers, and more. Everyone can contribute to the Wikimedia Resource Center: the goal is to reach out to people who document a process, write step-by-step guides, or run a workshop, among other resources that they can share in this platform. 
 
 There are two components to sharing resources on this platform: audience and category. The audience is the group of people you are addressing. In the Wikimedia Resource Center, we are focusing on 4 audience groups: 
@@ -17,7 +17,7 @@ There are two components to sharing resources on this platform: audience and cat
 - **Affiliate organizers** (Wikimedians who are invested in organizing a local Wikimedia user group, chapter, or thematic organization)
 
 
-The category refers to the area your resource is addressing. We have identified 10 areas for contribution: Contact and questions, skills development, grant support, program support, software basics, software development, technical infrastructure, global reach partnerships, legal, communications. We believe these areas cover all resource types. If you think none of them apply to the resource you want to share, please email us at eval@wikimedia.org, or leave a comment on the [[m:Talk:Wikimedia Resource Center|talk page]]. 
+The category refers to the area your resource is addressing. We have identified 10 areas for contribution: Contact and questions, skills development, grant support, program support, software basics, software development, technical infrastructure, global reach partnerships, legal, communications. 
 
 
 ## [[meta:Connect]]: connecting people across the Wikimedia movement
