@@ -41,4 +41,4 @@ This version has the initial proposal of adding people and groups. In order to a
 The next milestone is to create a form that makes adding individuals to the directory a much easier process. The form would also add a category to the userpage. Find the open issue [here](https://github.com/macruzbar/Wikimedia-Resource-Center/issues/7)
 
 ### Milestone 3: A form for groups
-The third milestone is to create or adapt an existing form that makes adding groups to the directory easier. It is the same issue as above, which you can find [here[(https://github.com/macruzbar/Wikimedia-Resource-Center/issues/7)
+The third milestone is to create or adapt an existing form that makes adding groups to the directory easier. It is the same issue as above, which you can find [here](https://github.com/macruzbar/Wikimedia-Resource-Center/issues/7)
