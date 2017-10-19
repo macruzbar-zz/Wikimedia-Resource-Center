@@ -19,7 +19,7 @@ There are two components to sharing resources on this platform: audience and cat
 The category refers to the area your resource is addressing. We have identified 10 areas for contribution: Contact and questions, skills development, grant support, program support, software basics, software development, technical infrastructure, global reach partnerships, legal, communications. We believe these areas cover all resource types. If you think none of them apply to the resource you want to share, please email us at eval@wikimedia.org, or leave a comment on the [[m:Talk:Wikimedia Resource Center|talk page]]. 
 
 
-Connect to others!
+<h2>Connect to others!</h2>
 
 People are the very essence of our movement. When we connect to others, we learn faster, better and the knowledge stays with us for longer. Consider adding your profile or starting a group on [[m:Connect|Connect]] if you see an area of expertise, or want to share your skills or answer questions for Wikimedians who are only now beginning to grow in the movement. 
 
