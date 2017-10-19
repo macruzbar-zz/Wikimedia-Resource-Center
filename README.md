@@ -7,13 +7,13 @@ Anyone can contribute to the Wikimedia Resource Center. Including you! Have you 
 
 There are two components to sharing resources on this platform: audience and category. The audience is the group of people you are addressing. In the Wikimedia Resource Center, we are focusing on 4 audience groups: 
 
-Program leaders (Wikimedians who help run edit-a-thons, photo contests, Wikipedians in Residence, etc.), 
+- Program leaders (Wikimedians who help run edit-a-thons, photo contests, Wikipedians in Residence, etc.), 
 
-Contributors (Wikimedians who contribute content on Wikipedia, Wikimedia Commons, Wikidata, Wikivoyage, etc) 
+- Contributors (Wikimedians who contribute content on Wikipedia, Wikimedia Commons, Wikidata, Wikivoyage, etc) 
 
-Volunteer developers (those who contribute code to our projects, by writing bots, Lua models, etc)
+- Volunteer developers (those who contribute code to our projects, by writing bots, Lua models, etc)
 
-Affiliate organizers (Wikimedians who are invested in organizing a local Wikimedia user group, chapter, or thematic organization)
+- Affiliate organizers (Wikimedians who are invested in organizing a local Wikimedia user group, chapter, or thematic organization)
 
 
 The category refers to the area your resource is addressing. We have identified 10 areas for contribution: Contact and questions, skills development, grant support, program support, software basics, software development, technical infrastructure, global reach partnerships, legal, communications. We believe these areas cover all resource types. If you think none of them apply to the resource you want to share, please email us at eval@wikimedia.org, or leave a comment on the [[m:Talk:Wikimedia Resource Center|talk page]]. 
