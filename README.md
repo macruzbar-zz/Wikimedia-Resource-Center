@@ -1,7 +1,7 @@
 # Wikimedia-Resource-Center
 A single point of entry for all Wikimedia-related resources
 
-Hi! Welcome to the Wikimedia Resource Center project page on Github. This is a space for developers to contribute to the development of a gadget to build a directory on wiki. 
+Hi! Welcome to the Wikimedia Resource Center project page on Github. This is a space for developers to contribute to the development of a gadget to build a directory on [Meta-Wikimedia](https://meta.wikimedia.org/wiki/Main_Page). 
 
 ## Background
 The [Wikimedia Resource Center](https://meta.wikimedia.org/wiki/Wikimedia_Resource_Center) was designed as a single point of entry to all Wikimedia-related resources. This includes: contact and questions, program guides, skills support, program support, resources for developers, and more. Everyone can contribute to the Wikimedia Resource Center: the goal is to reach out to people who document a process, write step-by-step guides, or run a workshop, among other resources that they can share in this platform. 
