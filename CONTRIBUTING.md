@@ -15,6 +15,8 @@ You can find the Code of Conduct [here](Wikimedia-Resource-Center/code-of-conduc
 * [Getting started with Mediawiki](https://www.mediawiki.org/wiki/How_to_become_a_MediaWiki_hacker)
 * [Mediawiki developer hub](https://www.mediawiki.org/wiki/Developer_hub) (for experienced developers)
 
+## How to submit changes
+Please add a new js file on the Wikimedia Resource Center [repository](https://github.com/macruzbar/Wikimedia-Resource-Center).
 
 ## Communication channels
 I will follow the [main issue](https://github.com/macruzbar/Wikimedia-Resource-Center/issues/7) for comments and questions. 
