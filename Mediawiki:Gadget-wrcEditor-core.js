@@ -8,11 +8,15 @@
 	mw.loader.using( [
 		'mediawiki.api',
 		'oojs-ui',
+		'oojs-ui-core',
 		'oojs-ui.styles.icons-editing-core',
 		'ext.gadget.luaparse'
 	] ).done( function () {
 		var editButton, cleanRawEntry, gadgetMsg, getContentModuleQuery,
 		getRelevantRawEntry, parseContentModule, openWindow, uniqueId, userLang;
+		
+		// Declare an asterisk to be used by mandatory editor fields
+		var asterisk = " *";
 
 		userLang = mw.config.get( 'wgUserLanguage' );
 		new mw.Api().get( {
@@ -196,9 +200,8 @@
 				this.fieldHeader = new OO.ui.TextInputWidget( {
 					value: this.header
 				} );
-				this.fieldDescription = new OO.ui.TextInputWidget( {
+				this.fieldDescription = new OO.ui.MultilineTextInputWidget( {
 					value: this.description,
-					multiline: true,
 					rows: 5
 				} );
 				this.fieldRelated = new OO.ui.TextInputWidget( {
@@ -280,7 +283,7 @@
 				this.fieldCommunity = new OO.ui.CheckboxInputWidget( {
 					selected: fieldCommunityEvaluate()
 				} );
-
+				
 				this.deleteButton = new OO.ui.ButtonWidget( {
 					label: gadgetMsg[ 'editor-remove-entry' ],
 					icon: 'trash',
@@ -333,14 +336,14 @@
 						new OO.ui.FieldLayout(
 							this.fieldCategory,
 							{
-								label: gadgetMsg[ 'editor-field-category' ],
+								label: gadgetMsg[ 'editor-field-category' ] + asterisk,
 								align: 'top'
 							}
 						),
 						new OO.ui.FieldLayout(
 							this.fieldAudiences,
 							{
-								label: gadgetMsg[ 'editor-field-audiences' ],
+								label: gadgetMsg[ 'editor-field-audiences' ] + asterisk,
 								align: 'top'
 							}
 						),
@@ -706,7 +709,7 @@
 				var $addButton = $( this ),
 					addButton;
 				addButton = new OO.ui.ButtonWidget( {
-					icon: 'edit',
+					icon: 'add',
 					label: gadgetMsg[ 'editor-addbutton' ],
 					flags: [ 'primary', 'progressive' ]
 				} ).on( 'click', function () {
@@ -718,6 +721,6 @@
 				$addButton.css( 'margin', '1.125em' );
 				$addButton.append( addButton.$element );
 			} );
-			} );
 		} );
+	} );
 }() );
