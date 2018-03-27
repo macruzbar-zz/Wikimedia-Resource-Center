@@ -56,7 +56,8 @@
 				};
 				
 				/**
-				 * Get userpage data of a specific user
+				 * Provide parameters to get userpage content of a specific user in the form
+				 * [[User:DAlangi_(WMF)]] for example and return.
 				 * 
 				 * @param {string} username Username of the user
 				 * @return {Object} API response (wikitext)
@@ -78,12 +79,12 @@
 				 * @param {string} username the entry we want to pick out.
 				 */
 				getRelevantRawEntry = function ( entries, username ) {
-					// Implement algorithm to get the required entry 
+					// TODO: Implement algorithm to get the required entry 
 					// from the list of entries.
 				};
 				
 				/**
-				 * Gets the entire content of the [[m:Connect/Individuals]] page
+				 * Gets the entire content (wikitext) of the [[m:Connect/Individuals]] page
 				 *
 				 * @param {Object} sourceblob The original API return
 				 * @return {Object} raw Entire page content
@@ -97,14 +98,21 @@
 				};
 				
 				/**
-				 * Add user's skills and/or experience to their user page
+				 * Add user's skills and experiences to their user page
 				 * 
 				 * @param {string} username The username of the user
 				 * @param {array} skills An array of the skills to be added to the user page
 				 */
 				addSkillsToUserpage = function ( username, skills ) {
-					var i, userPageData, userPageDataWithCategories,
-					categories = '', content;
+					var i, userPageContent, userPageContentWithCategories,
+					categories = '', summaryMsg;
+					
+					// Check the length of the categories to use appropriate edit summary
+					if ( skills.length > 1 ) {
+						summaryMsg = gadgetMsg[ 'added-categories' ];
+					} else {
+						summaryMsg = gadgetMsg[ 'added-category' ];
+					}
 					
 					new mw.Api().get( getUserpageData( username ) ).done( function ( data ) {
 						for ( i = 0; i < skills.length; i++ ) {
@@ -112,19 +120,21 @@
 							categories += skills[ i ];
 							categories += ']]';
 						}
-						content = getContentModule( data.query.pages );
-						// Add new categories to the user's page content
-						userPageDataWithCategories = content + categories;
+						userPageContent = getContentModule( data.query.pages );
 						
-						// Save the content plus the new categories on the user's page
+						// Add new categories to the user's page content
+						userPageContentWithCategories = userPageContent + categories;
+						
+						// Save the content with the new categories on the user's page
+						// This will enable the user to feature on the corresponding categories
 						new mw.Api().postWithToken(
 							'csrf',
 							{
 								action: 'edit',
 								nocreate: true,
-								summary: 'Added you to categories: ' + skills,
-								title: 'User:' + username,  // User's userpage
-								text: userPageDataWithCategories,
+								summary: summaryMsg + skills,
+								title: gadgetMsg[ 'user-page' ] + username,
+								text: userPageContentWithCategories,
 								contentmodel: 'wikitext'
 							}
 						).done( function () {
@@ -137,7 +147,7 @@
 								location.reload();
 							} );
 						} ).fail( function () {
-							alert( 'Could not add user to categories' );
+							alert( gadgetMsg[ 'added-category-failure' ] );
 							dialog.close();
 						} );
 					});
@@ -227,7 +237,8 @@
 					fieldSkillsToShareSelected = [];
 					for ( i = 0; i < this.skills.length; i++ ) {
 						fieldSkillsToShareSelected.push(
-							{ data: this.skills[ i ], label: gadgetMsg[ this.skills[ i ].toLowerCase().replace( / /g, '-' ) ] }
+							{ data: this.skills[ i ],
+								label: gadgetMsg[ this.skills[ i ].toLowerCase().replace( / /g, '-' ) ] }
 						);
 					}
 					this.fieldSkillsToShare = new OO.ui.MenuTagMultiselectWidget( {
@@ -337,7 +348,7 @@
 				};
 	
 				/**
-				 * Save the changes to the [[Connect/Individuals]] page.
+				 * Save the changes to the [[m:Connect/Individuals]] page.
 				 */
 				WrcAddNewIndividual.prototype.saveItem = function () {
 					var dialog = this, content;
@@ -350,7 +361,7 @@
 							skills;
 	
 						/**
-						 * Creates individual data to resemble that in template.
+						 * Generate individual's data to resemble that in template.
 						 */
 						generateIndividualData = function ( k, v ) {
 							var res;
@@ -404,9 +415,9 @@
 						
 						workingEntry = {};
 						workingEntry = processWorkingEntry( workingEntry );
-						editSummary = 'Adding new individual '.concat( workingEntry.name );
+						editSummary = gadgetMsg[ 'add-new-individual' ].concat( workingEntry.name );
 						manifest.push( workingEntry );
-
+						
 						// Re-generate the [[m:Connect/Individual]] table based on `manifest`
 						insertInPlace = '\n{{Connect listing\n';
 						for ( i = 0; i < manifest.length; i++ ) {
@@ -441,11 +452,9 @@
 							}
 						}
 						insertInPlace += '}}\n';
-						
 						content = getContentModule( data.query.pages );
 						// Append new individual to entire page content
 						insertInPlace = content + insertInPlace;
-
 						// Now update the Individuals page.
 						new mw.Api().postWithToken(
 							'csrf',
@@ -508,8 +517,6 @@
 							.data( 'wrc-unique-id' );
 							
 							content = getContentModule( data.query.pages );
-							//entryData = getRelevantRawEntry( content, username );
-							
 							openWindow( entryData );
 						} );
 					} );
