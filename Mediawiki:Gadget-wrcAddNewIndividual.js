@@ -1,5 +1,6 @@
 /**
- * Gadget to add new individual (ANI) to [[m:Connect/Individuals]] on the Wikimedia Resource Center (WRC).
+ * Gadget to add new individual (ANI) to [[Module:Wikimedia Resource Center/Individuals]]
+ * on the Wikimedia Resource Center (WRC).
  */
 ( function () {
 	'use strict';
@@ -10,11 +11,12 @@
 			'mediawiki.api',
 			'oojs-ui',
 			'oojs-ui-core',
-			'oojs-ui.styles.icons-editing-core'
+			'oojs-ui.styles.icons-editing-core',
+			'ext.gadget.luaparse'
 		] ).done( function () {
 			var gadgetMsg, getContentIndividuals, openWindow,
 				userLang, getContentModule, getRelevantRawEntry,
-				addSkillsToUserpage, getUserpageData;
+				addSkillsToUserpage, getUserpageData, cleanRawEntry;
 	
 			userLang = mw.config.get( 'wgUserLanguage' );
 			/**
@@ -49,7 +51,7 @@
 					return {
 						action: 'query',
 						prop: 'revisions',
-						titles: 'Connect/Individuals',
+						titles: 'Module:Wikimedia Resource Center/Individuals',
 						rvprop: 'content',
 						rvlimit: 1
 					};
@@ -73,28 +75,70 @@
 				};
 				
 				/**
-				 * Picks through the API response and returns a specific requested entry
-				 *
-				 * @param {Object} entries API response.
-				 * @param {string} username the entry we want to pick out.
-				 */
-				getRelevantRawEntry = function ( entries, username ) {
-					// TODO: Implement algorithm to get the required entry 
-					// from the list of entries.
-				};
-				
-				/**
 				 * Gets the entire content (wikitext) of the [[m:Connect/Individuals]] page
 				 *
 				 * @param {Object} sourceblob The original API return
 				 * @return {Object} raw Entire page content
 				 */
 				getContentModule = function ( sourceblob ) {
-					var i, raw;
+					var i, raw, ast;
 					for ( i in sourceblob ) {  // should only be one result
 						raw = sourceblob[ i ].revisions[ 0 ][ '*' ];
-						return raw;
+						ast = luaparse.parse( raw );
+						return ast.body[ 0 ].arguments[ 0 ].fields;
 					}
+				};
+				
+				/**
+				  * Picks through the abstract syntax tree and returns a specific requested
+				  * entry
+				  *
+				  * @param {Object} entries The abstract syntax tree
+				  * @param {string} name the entry we want to pick out.
+				  */
+				getRelevantRawEntry = function ( entries, name ) {
+					var i, j;
+					// Look through the individual entries
+					for ( i = 0; i < entries.length; i++ ) {
+						// Loop through the individual key-value pairs within each entry
+						for ( j = 0; j < entries[ i ].value.fields.length; j++ ) {
+							if (
+								entries[ i ].value.fields[ j ].key.name == 'name' &&
+								entries[ i ].value.fields[ j ].value.value == name
+							) {
+								return entries[ i ].value.fields;
+							}
+						}
+					}
+				};
+	
+				/**
+				  * Take a raw entry from the abstract syntax tree and make it an object
+				  * that is easier to work with.
+				  *
+				  * @param {Object} relevantRawEntry the raw entry from the AST
+				  * @return {Object} The cleaned up object
+				  */
+				cleanRawEntry = function ( relevantRawEntry ) {
+					var entryData = {},
+						i, j;
+					for ( i = 0; i < relevantRawEntry.length; i++ ) {
+						if ( relevantRawEntry[ i ].key.name == 'skills' ) {
+							entryData.skills = [];
+							for (
+								j = 0;
+								j < relevantRawEntry[ i ].value.fields.length;
+								j++
+							) {
+								entryData.skills.push(
+									relevantRawEntry[ i ].value.fields[ j ].value.value
+								);
+							}
+						} else {
+							entryData[ relevantRawEntry[ i ].key.name ] = relevantRawEntry[ i ].value.value;
+						}
+					}
+					return entryData;
 				};
 				
 				/**
@@ -279,6 +323,20 @@
 						],
 						indicator: 'required'
 					} );
+					
+					this.deleteButton = new OO.ui.ButtonWidget( {
+						label: gadgetMsg[ 'editor-remove-entry' ],
+						icon: 'trash',
+						flags: [ 'destructive' ]
+					} ).on( 'click', function () {
+						new OO.ui.confirm(
+							gadgetMsg[ 'editor-remove-confirm' ]
+						).done( function ( confirmed ) {
+							if ( confirmed ) {
+								dialog.saveItem( 'delete' );
+							}
+						} );
+					} );
 	
 					// Append things to fieldSet
 					this.fieldSet = new OO.ui.FieldsetLayout( {
@@ -318,6 +376,14 @@
 						]
 					} );
 					
+					if ( this.name ) {
+						this.fieldSet.addItems( [
+							new OO.ui.FieldLayout(
+								this.deleteButton
+							)
+						] );
+					}
+					
 					// When everything is done
 					this.content.$element.append( this.fieldSet.$element );
 					this.$body.append( this.content.$element );
@@ -348,25 +414,60 @@
 				};
 	
 				/**
-				 * Save the changes to the [[m:Connect/Individuals]] page.
+				 * Save the changes to the [[Module:Wikimedia Resource Center/Individuals]] page.
 				 */
-				WrcAddNewIndividual.prototype.saveItem = function () {
+				WrcAddNewIndividual.prototype.saveItem = function ( deleteFlag ) {
 					var dialog = this, content;
 	
 					dialog.pushPending();
 	
 					new mw.Api().get( getContentIndividuals() ).done( function ( data ) {
-						var i, insertInPlace, generateIndividualData, processWorkingEntry,
+						var i, insertInPlace, sanitizeInput, processWorkingEntry,
 							editSummary, manifest = [], workingEntry, username,
-							skills;
-	
+							generateKeyValuePair, skills, entries;
+							
 						/**
-						 * Generate individual's data to resemble that in template.
-						 */
-						generateIndividualData = function ( k, v ) {
-							var res;
-							res = '| '.concat( k, ' = ' );
-							res += v + '\n';
+						  * Sanitizes input for saving to wiki
+						  *
+						  * @param {string} s
+						  *
+						  * @return {string}
+						  */
+						sanitizeInput = function ( s ) {
+							return s
+								.replace( /\\/g, '\\\\' )
+							.replace( /\n/g, '<br />' );
+						};
+						
+						/**
+						  * Creates Lua-style key-value pairs, including converting the
+						  * audiences array into a proper sequential table.
+						  *
+						  * @param {string} k The key
+						  * @param {string} v The value
+						  *
+						  * @return {string}
+						  */
+						generateKeyValuePair = function ( k, v ) {
+							var res, jsonarray;
+							res = '\t\t'.concat( k, ' = ' );
+							if ( k == 'skills' ) {
+								jsonarray = JSON.stringify( v );
+								// Lua uses { } for "arrays"
+								jsonarray = jsonarray.replace( '[', '{' );
+								jsonarray = jsonarray.replace( ']', '}' );
+								// Style changes (single quotes, spaces after commas)
+								jsonarray = jsonarray.replace( /\"/g, '\'' );
+								jsonarray = jsonarray.replace( /,/g, ', ' );
+								// Basic input sanitation
+								jsonarray = sanitizeInput( jsonarray );
+								res += jsonarray;
+							} else {
+								v = sanitizeInput( v );
+								v = v.replace( /'/g, '\\\'' );
+								res += '\'' + v + '\'';
+							}
+							res += ',\n';
 							return res;
 						};
 						
@@ -413,22 +514,46 @@
 							return workingEntry;
 						};
 						
-						workingEntry = {};
-						workingEntry = processWorkingEntry( workingEntry );
-						editSummary = gadgetMsg[ 'add-new-individual' ].concat( workingEntry.name );
-						manifest.push( workingEntry );
+						// Cycle through existing entries. If we are editing an existing
+						// entry, that entry will be modified in place.
+						entries = getContentModule( data.query.pages );
+	
+						for ( i = 0; i < entries.length; i++ ) {
+							workingEntry = cleanRawEntry( entries[ i ].value.fields );
+							if ( workingEntry.name == dialog.name ) {
+								if ( deleteFlag ) {
+									editSummary = 'Removing individual: '.concat( workingEntry.name );
+								} else {
+									workingEntry = processWorkingEntry( workingEntry );
+									editSummary = 'Editing individual: '.concat( workingEntry.name );
+								}
+							}
+							if ( workingEntry.name != dialog.name || !deleteFlag ) {
+								manifest.push( workingEntry );
+							}
+						}
 						
-						// Re-generate the [[m:Connect/Individual]] table based on `manifest`
-						insertInPlace = '\n{{Connect listing\n';
+						// No unique name means this is a new entry
+						if ( !dialog.name ) {
+							workingEntry = {};
+							workingEntry = processWorkingEntry( workingEntry );
+							editSummary = gadgetMsg[ 'add-new-individual' ].concat( workingEntry.name );
+							manifest.push( workingEntry );
+						}
+						
+						// Re-generate the Lua table based on `manifest`
+						// Also re-generate the translation string page
+						insertInPlace = 'return {\n';
 						for ( i = 0; i < manifest.length; i++ ) {
+							insertInPlace += '\t{\n';
 							if ( manifest[ i ].type ) {
-								insertInPlace += generateIndividualData(
+								insertInPlace += generateKeyValuePair(
 									'type',
 									manifest[ i ].type
 								);
 							}
 							if ( manifest[ i ].name ) {
-								insertInPlace += generateIndividualData(
+								insertInPlace += generateKeyValuePair(
 									'name',
 									manifest[ i ].name
 								);
@@ -436,35 +561,37 @@
 								username = manifest[ i ].name;
 							}
 							if ( manifest[ i ].description ) {
-								insertInPlace += generateIndividualData(
+								insertInPlace += generateKeyValuePair(
 									'description',
 									manifest[ i ].description
 								);
 							}
 							if ( manifest[ i ].icon ) {
-								insertInPlace += generateIndividualData(
+								insertInPlace += generateKeyValuePair(
 									'icon',
 									manifest[ i ].icon
 								);
 							}
 							if ( manifest[ i ].skills ) {
+								insertInPlace += generateKeyValuePair(
+									'skills',
+									manifest[ i ].skills
+								);
 								skills = manifest[ i ].skills;
 							}
+							insertInPlace += '\t},\n';
 						}
-						insertInPlace += '}}\n';
-						content = getContentModule( data.query.pages );
-						// Append new individual to entire page content
-						insertInPlace = content + insertInPlace;
-						// Now update the Individuals page.
+						insertInPlace += '}';
+						
 						new mw.Api().postWithToken(
 							'csrf',
 							{
 								action: 'edit',
 								nocreate: true,
 								summary: editSummary,
-								pageid: 10454752,  // Connect/Individuals
+								pageid: 10588347,  // Module:Wikimedia_Resource_Center/Individuals
 								text: insertInPlace,
-								contentmodel: 'wikitext'
+								contentmodel: 'Scribunto'
 							}
 						).done( function () {
 							dialog.close();
@@ -513,10 +640,15 @@
 							var entryData, username, content;
 							
 							username = editButton.$element
-							.closest( '.wrc-card' )
-							.data( 'wrc-unique-id' );
-							
-							content = getContentModule( data.query.pages );
+								.closest( '.wrc-card' )
+								.data( 'wrc-unique-id' );
+								
+							entryData = cleanRawEntry(
+								getRelevantRawEntry(
+									getContentModule( data.query.pages ),
+									username
+								)
+							);
 							openWindow( entryData );
 						} );
 					} );
