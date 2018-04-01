@@ -284,6 +284,9 @@
 					selected: fieldCommunityEvaluate()
 				} );
 				
+				// This will be used to make a notice for required fields
+				//this.fieldNotice = new OO.ui.HiddenInputWidget( {} );
+				
 				this.deleteButton = new OO.ui.ButtonWidget( {
 					label: gadgetMsg[ 'editor-remove-entry' ],
 					icon: 'trash',
@@ -353,7 +356,14 @@
 								label: gadgetMsg[ 'editor-field-wmf' ],
 								align: 'inline'
 							}
-						)
+						)/*,
+						new OO.ui.FieldLayout(
+							this.fieldNotice,
+							{
+								label: gadgetMsg[ 'required-field-notice' ],
+								align: 'top'
+							}
+						)*/
 					]
 				} );
 
@@ -375,7 +385,7 @@
 			  *
 			  */
 			WrcEditor.prototype.getBodyHeight = function () {
-				return 625;
+				return 660;
 			};
 
 			/**
