@@ -16,7 +16,8 @@
 		] ).done( function () {
 			var gadgetMsg, getContentIndividuals, openWindow,
 				userLang, getContentModule, getRelevantRawEntry,
-				addSkillsToUserpage, getUserpageData, cleanRawEntry;
+				addSkillsToUserpage, getUserpageData, cleanRawEntry,
+				getWikitextModule;
 	
 			userLang = mw.config.get( 'wgUserLanguage' );
 			/**
@@ -75,10 +76,10 @@
 				};
 				
 				/**
-				 * Gets the entire content (wikitext) of the [[m:Connect/Individuals]] page
+				 * Gets the Lua table data of the [[Module:Wikimedia Resource Center/Individuals]] page
 				 *
 				 * @param {Object} sourceblob The original API return
-				 * @return {Object} raw Entire page content
+				 * @return {Object} raw Lua table
 				 */
 				getContentModule = function ( sourceblob ) {
 					var i, raw, ast;
@@ -86,6 +87,20 @@
 						raw = sourceblob[ i ].revisions[ 0 ][ '*' ];
 						ast = luaparse.parse( raw );
 						return ast.body[ 0 ].arguments[ 0 ].fields;
+					}
+				};
+				
+				/**
+				 * Gets the entire content (wikitext) of the page
+				 *
+				 * @param {Object} sourceblob The original API return
+				 * @return {Object} raw Entire page content
+				 */
+				getWikitextModule = function ( sourceblob ) {
+					var i, raw;
+					for ( i in sourceblob ) {  // should only be one result
+						raw = sourceblob[ i ].revisions[ 0 ][ '*' ];
+						return raw;
 					}
 				};
 				
@@ -164,7 +179,7 @@
 							categories += skills[ i ];
 							categories += ']]';
 						}
-						userPageContent = getContentModule( data.query.pages );
+						userPageContent = getWikitextModule( data.query.pages );
 						
 						// Add new categories to the user's page content
 						userPageContentWithCategories = userPageContent + categories;
@@ -424,7 +439,7 @@
 					new mw.Api().get( getContentIndividuals() ).done( function ( data ) {
 						var i, insertInPlace, sanitizeInput, processWorkingEntry,
 							editSummary, manifest = [], workingEntry, username,
-							generateKeyValuePair, skills, entries;
+							generateKeyValuePair, skills, entries, name;
 							
 						/**
 						  * Sanitizes input for saving to wiki
@@ -553,12 +568,12 @@
 								);
 							}
 							if ( manifest[ i ].name ) {
+								name = manifest [ i ].name.replace( " ", "_" );
 								insertInPlace += generateKeyValuePair(
-									'name',
-									manifest[ i ].name
+									'name', name
 								);
 								// Keep track of the username
-								username = manifest[ i ].name;
+								username = name;
 							}
 							if ( manifest[ i ].description ) {
 								insertInPlace += generateKeyValuePair(
@@ -583,6 +598,10 @@
 						}
 						insertInPlace += '}';
 						
+						// Add user's skills they can share to their user page
+						addSkillsToUserpage( username, skills );
+						
+						// add the new user into the Lua table.
 						new mw.Api().postWithToken(
 							'csrf',
 							{
@@ -607,8 +626,6 @@
 							dialog.close();
 						} );
 						
-						// Add user's skills they can share to their user page
-						addSkillsToUserpage( username, skills );
 					} );
 				};
 				
