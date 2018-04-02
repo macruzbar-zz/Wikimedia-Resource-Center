@@ -1,6 +1,7 @@
 /**
- * Gadget to add new individual (ANI) to [[Module:Wikimedia Resource Center/Individuals]]
- * on the Wikimedia Resource Center (WRC).
+ * Gadget (based on JavaScript) to add new individual (ANI) to 
+ * [[Module:Wikimedia Resource Center/Individuals]] on the Wikimedia 
+ * Resource Center (WRC).
  */
 ( function () {
 	'use strict';
@@ -8,22 +9,21 @@
 	if ( mw.config.values.wgPageName.split('/')[0] == 'Connect' ) {
 		
 		mw.loader.using( [
+			'ext.gadget.luaparse',
 			'mediawiki.api',
 			'oojs-ui',
 			'oojs-ui-core',
-			'oojs-ui.styles.icons-editing-core',
-			'ext.gadget.luaparse'
+			'oojs-ui.styles.icons-editing-core'
 		] ).done( function () {
-			var gadgetMsg, getContentIndividuals, openWindow,
-				userLang, getContentModule, getRelevantRawEntry,
-				addSkillsToUserpage, getUserpageData, cleanRawEntry,
-				getWikitextModule;
+			var addSkillsToUserpage, cleanRawEntry, gadgetMsg,
+				getContentIndividuals, getContentModule, getRelevantRawEntry,
+				getUserpageData, getWikitextModule, openWindow, userLang;
 	
 			userLang = mw.config.get( 'wgUserLanguage' );
 			/**
 			 * Query the I18n Template for keywords to be used in this gadget.
 			 * NOTE: The strings must be marked for translation before the keys/value 
-			 * pair works in the gadget.
+			 * pair can works in the gadget.
 			 */
 			new mw.Api().get( {
 				action: 'query',
@@ -44,9 +44,10 @@
 				}
 				
 				/**
-				 * Provides API parameters for getting the content of the [[m:Connect/Individuals]] page
+				 * Provides API parameters for getting the content of the
+				 * [[Module:Wikimedia Resource Center/Individuals]] page.
 				 *
-				 * @return {Object}
+				 * @return {Object} Lua table
 				 */
 				getContentIndividuals = function () {
 					return {
@@ -59,8 +60,8 @@
 				};
 				
 				/**
-				 * Provide parameters to get userpage content of a specific user in the form
-				 * [[User:DAlangi_(WMF)]] for example and return.
+				 * Provide parameters to get User page content of a specific 
+				 * user in the form [[User:DAlangi_(WMF)]] for example and return.
 				 * 
 				 * @param {string} username Username of the user
 				 * @return {Object} API response (wikitext)
@@ -76,10 +77,11 @@
 				};
 				
 				/**
-				 * Gets the Lua table data of the [[Module:Wikimedia Resource Center/Individuals]] page
+				 * Notate the Lua table from [[Module:Wikimedia Resource Center/Individuals]]
+				 * page in the form of an Abstract Syntax Tree (AST) for fine manipulation.
 				 *
 				 * @param {Object} sourceblob The original API return
-				 * @return {Object} raw Lua table
+				 * @return {Object} raw Lua table on an AST
 				 */
 				getContentModule = function ( sourceblob ) {
 					var i, raw, ast;
@@ -91,10 +93,10 @@
 				};
 				
 				/**
-				 * Gets the entire content (wikitext) of the page
+				 * Get an entire content (wikitext) of a given page
 				 *
 				 * @param {Object} sourceblob The original API return
-				 * @return {Object} raw Entire page content
+				 * @return {Object} raw Entire page content (wikitext)
 				 */
 				getWikitextModule = function ( sourceblob ) {
 					var i, raw;
@@ -105,11 +107,11 @@
 				};
 				
 				/**
-				  * Picks through the abstract syntax tree and returns a specific requested
-				  * entry
+				  * Looks through the abstract syntax tree and returns a specific requested
+				  * entry based on a particular name.
 				  *
 				  * @param {Object} entries The abstract syntax tree
-				  * @param {string} name the entry we want to pick out.
+				  * @param {string} name The entry we want to pick out
 				  */
 				getRelevantRawEntry = function ( entries, name ) {
 					var i, j;
@@ -181,7 +183,7 @@
 						}
 						userPageContent = getWikitextModule( data.query.pages );
 						
-						// Add new categories to the user's page content
+						// Add new categories to the user's page
 						userPageContentWithCategories = userPageContent + categories;
 						
 						// Save the content with the new categories on the user's page
@@ -429,7 +431,7 @@
 				};
 	
 				/**
-				 * Save the changes to the [[Module:Wikimedia Resource Center/Individuals]] page.
+				 * Save the changes to [[Module:Wikimedia Resource Center/Individuals]] page.
 				 */
 				WrcAddNewIndividual.prototype.saveItem = function ( deleteFlag ) {
 					var dialog = this, content;
@@ -487,8 +489,8 @@
 						};
 						
 						/**
-						 * Compares a given Wikimedia Resource Center entry against the
-						 * edit fields and applies changes where relevant.
+						 * Compares a given Wikimedia Resource Center/Individuals entry 
+						 * against the edit fields and applies changes where relevant.
 						 *
 						 * @param {Object} workingEntry the entry being worked on
 						 * @return {Object} The same entry but with modifications
@@ -557,7 +559,6 @@
 						}
 						
 						// Re-generate the Lua table based on `manifest`
-						// Also re-generate the translation string page
 						insertInPlace = 'return {\n';
 						for ( i = 0; i < manifest.length; i++ ) {
 							insertInPlace += '\t{\n';
@@ -601,7 +602,7 @@
 						// Add user's skills they can share to their user page
 						addSkillsToUserpage( username, skills );
 						
-						// add the new user into the Lua table.
+						// Add the new user into the Lua table.
 						new mw.Api().postWithToken(
 							'csrf',
 							{

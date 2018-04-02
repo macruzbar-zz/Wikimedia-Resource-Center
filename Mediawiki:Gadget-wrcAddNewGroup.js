@@ -1,5 +1,7 @@
 /**
- * Gadget to add new group (ANG) to [[Module:Wikimedia Resource Center/Groups]] on the Wikimedia Resource Center (WRC).
+ * Gadget (based on JavaScript) to add new group (ANG) to 
+ * [[Module:Wikimedia Resource Center/Groups]] on the Wikimedia 
+ * Resource Center (WRC).
  */
 ( function () {
 	'use strict';
@@ -7,15 +9,15 @@
 	if ( mw.config.values.wgPageName.split('/')[0] == 'Connect' ) {
 		
 		mw.loader.using( [
+			'ext.gadget.luaparse',
 			'mediawiki.api',
 			'oojs-ui',
 			'oojs-ui-core',
-			'oojs-ui.styles.icons-editing-core',
-			'ext.gadget.luaparse'
+			'oojs-ui.styles.icons-editing-core'
 		] ).done( function () {
-			var gadgetMsg, getContentGroups, openWindow,
-				userLang, getContentModule, getRelevantRawEntry,
-				cleanRawEntry;
+			var cleanRawEntry, gadgetMsg, getContentGroups,
+				getContentModule, getRelevantRawEntry, openWindow,
+				userLang;
 	
 			userLang = mw.config.get( 'wgUserLanguage' );
 			/**
@@ -58,10 +60,10 @@
 				};
 				
 				/**
-				 * Picks through the API response and returns a specific requested entry
+				 * Loops through the API response and returns a specific requested entry
 				 *
 				 * @param {Object} entries API response.
-				 * @param {string} username the entry we want to pick out.
+				 * @param {string} username The entry we want to pick out.
 				 */
 				getRelevantRawEntry = function ( entries, name ) {
 					var i, j;
@@ -96,7 +98,7 @@
 				};
 				
 				/**
-				 * Gets the entire content of the [[Module:Wikimedia Resource Center/Groups]] page
+				 * Get an entire content of the [[Module:Wikimedia Resource Center/Groups]] page
 				 *
 				 * @param {Object} sourceblob The original API return
 				 * @return {Object} raw An Abstract Syntax Tree
@@ -317,7 +319,7 @@
 				};
 	
 				/**
-				 * Save the changes to the [[Module:Wikimedia Resource Center/Groups]] page.
+				 * Save the changes to [[Module:Wikimedia Resource Center/Groups]] page.
 				 */
 				WrcAddNewGroup.prototype.saveItem = function ( deleteFlag ) {
 					var dialog = this, content, insertGroupPage,
@@ -375,13 +377,17 @@
 						
 						/**
 						 * Compares a given Wikimedia Resource Center entry against the
-						 * edit fields and applies changes where relevant.
+						 * edit fields and applies changes where necessary. Also, build the 
+						 * the group page Template here in order to create the group.
 						 *
 						 * @param {Object} workingEntry the entry being worked on
 						 * @return {Object} The same entry but with modifications
 						 */
 						processWorkingEntry = function ( workingEntry ) {
 							workingEntry.type = dialog.fieldType.getValue();
+							
+							// Building template for group connect
+							insertGroupPage = '{{Connect group\n';
 	
 							if ( dialog.fieldType.getValue() ) {
 								workingEntry.type = dialog.fieldType.getValue();
@@ -397,33 +403,55 @@
 	
 							if ( dialog.fieldDescription.getValue() ) {
 								workingEntry.description = dialog.fieldDescription.getValue();
+								insertGroupPage += generateGrouppageData(
+									'introduction',
+									workingEntry.description
+								);
 							} else if ( !dialog.fieldDescription.getValue() && workingEntry.description ) {
 								delete workingEntry.description;
 							}
 	
 							if ( dialog.fieldIcon.getValue() ) {
 								workingEntry.icon = dialog.fieldIcon.getValue();
+								insertGroupPage += generateGrouppageData(
+									'icon',
+									workingEntry.icon
+								);
 							} else if ( !dialog.fieldIcon.getValue() && workingEntry.icon ) {
 								delete workingEntry.icon;
 							}
 							
 							if ( dialog.fieldFacebook.getValue() ) {
 								workingEntry.facebook = dialog.fieldFacebook.getValue();
+								insertGroupPage += generateGrouppageData(
+									'facebook',
+									workingEntry.facebook
+								);
 							} else if ( !dialog.fieldFacebook.getValue() && workingEntry.facebook ) {
 								delete workingEntry.facebook;
 							}
 							
 							if ( dialog.fieldTwitter.getValue() ) {
 								workingEntry.twitter = dialog.fieldTwitter.getValue();
+								insertGroupPage += generateGrouppageData(
+									'twitter',
+									workingEntry.twitter
+								);
 							} else if ( !dialog.fieldTwitter.getValue() && workingEntry.twitter ) {
 								delete workingEntry.twitter;
 							}
 							
 							if ( dialog.fieldYouTube.getValue() ) {
 								workingEntry.youtube = dialog.fieldYouTube.getValue();
+								insertGroupPage += generateGrouppageData(
+									'youtube',
+									workingEntry.youtube
+								);
 							} else if ( !dialog.fieldYouTube.getValue() && workingEntry.youtube ) {
 								delete workingEntry.youtube;
 							}
+							// Finish template for the group page to be created on Connect
+							insertGroupPage += '}}\n[[Category:Connect groups|{{SUBPAGENAME}}]]';
 	
 							return workingEntry;
 						};
@@ -447,7 +475,7 @@
 							}
 						}
 						
-						// No unique name means this is a new entry
+						// No unique group name means this is a new entry
 						if ( !dialog.name ) {
 							workingEntry = {};
 							workingEntry = processWorkingEntry( workingEntry );
@@ -456,10 +484,7 @@
 						}
 						
 						// Re-generate the Lua table based on `manifest`
-						// Also re-generate the translation string page
 						insertInPlace = 'return {\n';
-						// Building template for group connect
-						insertGroupPage = '{{Connect group\n';
 						for ( i = 0; i < manifest.length; i++ ) {
 							insertInPlace += '\t{\n';
 							if ( manifest[ i ].type ) {
@@ -477,59 +502,36 @@
 								gpName = 'Connect/' + manifest[ i ].name;
 							}
 							if ( manifest[ i ].description ) {
-								insertGroupPage += generateGrouppageData(
-									'introduction',
-									manifest[ i ].description
-								);
 								insertInPlace += generateKeyValuePair(
 									'description',
 									manifest[ i ].description
 								);
 							}
 							if ( manifest[ i ].icon ) {
-								insertGroupPage += generateGrouppageData(
-									'icon',
-									manifest[ i ].icon
-								);
 								insertInPlace += generateKeyValuePair(
 									'icon',
 									manifest[ i ].icon
 								);
 							}
 							if ( manifest[ i ].facebook ) {
-								insertGroupPage += generateGrouppageData(
-									'facebook',
-									manifest[ i ].facebook
-								);
 								insertInPlace += generateKeyValuePair(
 									'facebook',
 									manifest[ i ].facebook
 								);
 							}
 							if ( manifest[ i ].twitter ) {
-								insertGroupPage += generateGrouppageData(
-									'twitter',
-									manifest[ i ].twitter
-								);
 								insertInPlace += generateKeyValuePair(
 									'twitter',
 									manifest[ i ].twitter
 								);
 							}
 							if ( manifest[ i ].youtube ) {
-								insertGroupPage += generateGrouppageData(
-									'youtube',
-									manifest[ i ].youtube
-								);
 								insertInPlace += generateKeyValuePair(
 									'youtube',
 									manifest[ i ].youtube
 								);
 							}
 							insertInPlace += '\t},\n';
-							
-							// Finish template for the group page to be created on Connect
-							insertGroupPage += '}}\n[[Category:Connect groups|{{SUBPAGENAME}}]]';
 						}
 						insertInPlace += '}';
 						
