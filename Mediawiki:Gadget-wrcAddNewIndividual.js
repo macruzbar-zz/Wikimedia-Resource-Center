@@ -176,13 +176,18 @@
 					}
 					
 					new mw.Api().get( getUserpageData( username ) ).done( function ( data ) {
+						categories += "\n<!--Connect Categories-->";
+						categories += "\n<!--[DO NOT EDIT BELOW MANUALLY] Please edit on [[Connect]]-->";
 						for ( i = 0; i < skills.length; i++ ) {
 							categories += "\n[[Category:";
 							categories += skills[ i ];
-							categories += ']]';
+							categories += "]]\n";
 						}
-						userPageContent = getWikitextModule( data.query.pages );
+						categories += "<!--Edit via form on [[Connect]]-->";
 						
+						userPageContent = getWikitextModule( data.query.pages );
+						// Truncate old categories if possible
+						userPageContent = userPageContent.split("<!--Connect Categories-->")[0];
 						// Add new categories to the user's page
 						userPageContentWithCategories = userPageContent + categories;
 						
@@ -410,7 +415,7 @@
 				 * Set custom height for the modal window
 				 */
 				WrcAddNewIndividual.prototype.getBodyHeight = function () {
-					return 400; // NOTE: Remember to add height when new fields are added.
+					return 420; // NOTE: Remember to add height when new fields are added.
 				};
 	
 				/**

@@ -298,7 +298,7 @@
 				 *
 				 */
 				WrcAddNewGroup.prototype.getBodyHeight = function () {
-					return 530; // NOTE: Remember to add height when new fields are added
+					return 550; // NOTE: Remember to add height when new fields are added
 				};
 	
 				/**
@@ -322,7 +322,7 @@
 				 * Save the changes to [[Module:Wikimedia Resource Center/Groups]] page.
 				 */
 				WrcAddNewGroup.prototype.saveItem = function ( deleteFlag ) {
-					var dialog = this, content, insertGroupPage,
+					var dialog = this, content, insertGroupPage ='',
 					generateGrouppageData, gpName;
 	
 					dialog.pushPending();
@@ -330,7 +330,7 @@
 					new mw.Api().get( getContentGroups() ).done( function ( data ) {
 						var i, insertInPlace, sanitizeInput, processWorkingEntry,
 							editSummary, manifest = [], workingEntry,
-							generateKeyValuePair, entries;
+							generateKeyValuePair, entries, pageName;
 							
 						/**
 						  * Sanitizes input for saving to wiki
@@ -366,16 +366,6 @@
 						};
 						
 						/**
-						 * Creates group data to resemble that in template.
-						 */
-						generateGrouppageData = function ( k, v ) {
-							var res;
-							res = '| '.concat( k, ' = ' );
-							res += v + '\n';
-							return res;
-						};
-						
-						/**
 						 * Compares a given Wikimedia Resource Center entry against the
 						 * edit fields and applies changes where necessary. Also, build the 
 						 * the group page Template here in order to create the group.
@@ -385,9 +375,6 @@
 						 */
 						processWorkingEntry = function ( workingEntry ) {
 							workingEntry.type = dialog.fieldType.getValue();
-							
-							// Building template for group connect
-							insertGroupPage = '{{Connect group\n';
 	
 							if ( dialog.fieldType.getValue() ) {
 								workingEntry.type = dialog.fieldType.getValue();
@@ -403,55 +390,33 @@
 	
 							if ( dialog.fieldDescription.getValue() ) {
 								workingEntry.description = dialog.fieldDescription.getValue();
-								insertGroupPage += generateGrouppageData(
-									'introduction',
-									workingEntry.description
-								);
 							} else if ( !dialog.fieldDescription.getValue() && workingEntry.description ) {
 								delete workingEntry.description;
 							}
 	
 							if ( dialog.fieldIcon.getValue() ) {
 								workingEntry.icon = dialog.fieldIcon.getValue();
-								insertGroupPage += generateGrouppageData(
-									'icon',
-									workingEntry.icon
-								);
 							} else if ( !dialog.fieldIcon.getValue() && workingEntry.icon ) {
 								delete workingEntry.icon;
 							}
 							
 							if ( dialog.fieldFacebook.getValue() ) {
 								workingEntry.facebook = dialog.fieldFacebook.getValue();
-								insertGroupPage += generateGrouppageData(
-									'facebook',
-									workingEntry.facebook
-								);
 							} else if ( !dialog.fieldFacebook.getValue() && workingEntry.facebook ) {
 								delete workingEntry.facebook;
 							}
 							
 							if ( dialog.fieldTwitter.getValue() ) {
 								workingEntry.twitter = dialog.fieldTwitter.getValue();
-								insertGroupPage += generateGrouppageData(
-									'twitter',
-									workingEntry.twitter
-								);
 							} else if ( !dialog.fieldTwitter.getValue() && workingEntry.twitter ) {
 								delete workingEntry.twitter;
 							}
 							
 							if ( dialog.fieldYouTube.getValue() ) {
 								workingEntry.youtube = dialog.fieldYouTube.getValue();
-								insertGroupPage += generateGrouppageData(
-									'youtube',
-									workingEntry.youtube
-								);
 							} else if ( !dialog.fieldYouTube.getValue() && workingEntry.youtube ) {
 								delete workingEntry.youtube;
 							}
-							// Finish template for the group page to be created on Connect
-							insertGroupPage += '}}\n[[Category:Connect groups|{{SUBPAGENAME}}]]';
 	
 							return workingEntry;
 						};
@@ -499,7 +464,8 @@
 									manifest[ i ].name.replace( " ", "_" )
 								);
 								// Save the page name
-								gpName = 'Connect/' + manifest[ i ].name;
+								pageName = 'Connect/' + manifest[ i ].name;
+								gpName = manifest[ i ].name;
 							}
 							if ( manifest[ i ].description ) {
 								insertInPlace += generateKeyValuePair(
@@ -535,6 +501,14 @@
 						}
 						insertInPlace += '}';
 						
+						// Build the invokation of the Lua script here
+						insertGroupPage += '<!--\nTo edit this page, please do so on [[Connect]]. ';
+						insertGroupPage += 'Click on the little pencil on the card corresponding ';
+						insertGroupPage += 'to the group and edit the details.\n-->\n';
+						insertGroupPage += '{{#invoke:Connect Groups|group_page|';
+						insertGroupPage += gpName;
+						insertGroupPage += '}}\n\n[[Category:Connect groups|{{SUBPAGENAME}}]]';
+						
 						new mw.Api().postWithToken(
 							'csrf',
 							{
@@ -564,7 +538,7 @@
 							'csrf',
 							{
 								action: 'edit',
-								title: gpName,  // Page name as sub-page of Connect
+								title: pageName,  // Page name as sub-page of Connect
 								summary: editSummary,
 								text: insertGroupPage,
 								contentmodel: 'wikitext'
