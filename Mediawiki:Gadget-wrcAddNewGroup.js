@@ -1,5 +1,7 @@
 /**
- * Gadget to add new group (ANG) to [[m:Connect/Groups]] on the Wikimedia Resource Center (WRC).
+ * Gadget (based on JavaScript) to add new group (ANG) to 
+ * [[Module:Wikimedia Resource Center/Groups]] on the Wikimedia 
+ * Resource Center (WRC).
  */
 ( function () {
 	'use strict';
@@ -7,13 +9,15 @@
 	if ( mw.config.values.wgPageName.split('/')[0] == 'Connect' ) {
 		
 		mw.loader.using( [
+			'ext.gadget.luaparse',
 			'mediawiki.api',
 			'oojs-ui',
 			'oojs-ui-core',
 			'oojs-ui.styles.icons-editing-core'
 		] ).done( function () {
-			var gadgetMsg, getContentGroups, openWindow,
-				userLang, getContentModule, getRelevantRawEntry;
+			var cleanRawEntry, gadgetMsg, getContentGroups,
+				getContentModule, getRelevantRawEntry, openWindow,
+				userLang;
 	
 			userLang = mw.config.get( 'wgUserLanguage' );
 			/**
@@ -40,7 +44,8 @@
 				}
 				
 				/**
-				 * Provides API parameters for getting the content of the [[m:Connect/Groups]] page
+				 * Provides API parameters for getting the content of the 
+				 * [[Module:Wikimedia Resource Center/Groups]] page
 				 *
 				 * @return {Object}
 				 */
@@ -48,34 +53,62 @@
 					return {
 						action: 'query',
 						prop: 'revisions',
-						titles: 'Connect/Groups',
+						titles: 'Module:Wikimedia Resource Center/Groups',
 						rvprop: 'content',
 						rvlimit: 1
 					};
 				};
 				
 				/**
-				 * Picks through the API response and returns a specific requested entry
+				 * Loops through the API response and returns a specific requested entry
 				 *
 				 * @param {Object} entries API response.
-				 * @param {string} username the entry we want to pick out.
+				 * @param {string} username The entry we want to pick out.
 				 */
-				getRelevantRawEntry = function ( entries, group ) {
-					// Implement algorithm to get the required entry 
-					// from the list of entries.
+				getRelevantRawEntry = function ( entries, name ) {
+					var i, j;
+					// Look through the individual entries
+					for ( i = 0; i < entries.length; i++ ) {
+						// Loop through the individual key-value pairs within each entry
+						for ( j = 0; j < entries[ i ].value.fields.length; j++ ) {
+							if (
+								entries[ i ].value.fields[ j ].key.name == 'name' &&
+								entries[ i ].value.fields[ j ].value.value == name
+							) {
+								return entries[ i ].value.fields;
+							}
+						}
+					}
 				};
 				
 				/**
-				 * Gets the entire content of the [[m:Connect/Groups]] page
+				  * Take a raw entry from the abstract syntax tree and make it an object
+				  * that is easier to work with.
+				  *
+				  * @param {Object} relevantRawEntry the raw entry from the AST
+				  * @return {Object} The cleaned up object
+				  */
+				cleanRawEntry = function ( relevantRawEntry ) {
+					var entryData = {},
+						i, j;
+					for ( i = 0; i < relevantRawEntry.length; i++ ) {
+						entryData[ relevantRawEntry[ i ].key.name ] = relevantRawEntry[ i ].value.value;
+					}
+					return entryData;
+				};
+				
+				/**
+				 * Get an entire content of the [[Module:Wikimedia Resource Center/Groups]] page
 				 *
 				 * @param {Object} sourceblob The original API return
-				 * @return {Object} raw Entire page content
+				 * @return {Object} raw An Abstract Syntax Tree
 				 */
 				getContentModule = function ( sourceblob ) {
-					var i, raw;
-					for ( i in sourceblob ) {
+					var i, raw, ast;
+					for ( i in sourceblob ) {  // should only be one result
 						raw = sourceblob[ i ].revisions[ 0 ][ '*' ];
-						return raw;
+						ast = luaparse.parse( raw );
+						return ast.body[ 0 ].arguments[ 0 ].fields;
 					}
 				};
 	
@@ -169,7 +202,6 @@
 						value: this.icon
 					} );
 					// Adding form fields to get social media links 
-					// of the group on [[m:Connect]]
 					this.fieldFacebook = new OO.ui.TextInputWidget( {
 						value: this.facebook
 					} );
@@ -178,6 +210,20 @@
 					} );
 					this.fieldYouTube = new OO.ui.TextInputWidget( {
 						value: this.youtube
+					} );
+					
+					this.deleteButton = new OO.ui.ButtonWidget( {
+						label: gadgetMsg[ 'editor-remove-entry' ],
+						icon: 'trash',
+						flags: [ 'destructive' ]
+					} ).on( 'click', function () {
+						new OO.ui.confirm(
+							gadgetMsg[ 'editor-remove-confirm' ]
+						).done( function ( confirmed ) {
+							if ( confirmed ) {
+								dialog.saveItem( 'delete' );
+							}
+						} );
 					} );
 					
 					// Append things to fieldSet
@@ -234,6 +280,14 @@
 						]
 					} );
 					
+					if ( this.name ) {
+						this.fieldSet.addItems( [
+							new OO.ui.FieldLayout(
+								this.deleteButton
+							)
+						] );
+					}
+					
 					// When everything is done
 					this.content.$element.append( this.fieldSet.$element );
 					this.$body.append( this.content.$element );
@@ -244,7 +298,7 @@
 				 *
 				 */
 				WrcAddNewGroup.prototype.getBodyHeight = function () {
-					return 500; // NOTE: Remember to add height when new fields are added
+					return 550; // NOTE: Remember to add height when new fields are added
 				};
 	
 				/**
@@ -265,30 +319,56 @@
 				};
 	
 				/**
-				 * Save the changes to the [[m:Connect/Groups]] page.
+				 * Save the changes to [[Module:Wikimedia Resource Center/Groups]] page.
 				 */
-				WrcAddNewGroup.prototype.saveItem = function () {
-					var dialog = this, content, insertGroupPage;
+				WrcAddNewGroup.prototype.saveItem = function ( deleteFlag ) {
+					var dialog = this, content, insertGroupPage ='',
+					generateGrouppageData, gpName;
 	
 					dialog.pushPending();
 	
 					new mw.Api().get( getContentGroups() ).done( function ( data ) {
-						var i, insertInPlace, generateGroupData, processWorkingEntry,
-							editSummary, manifest = [], workingEntry, gpName;
+						var i, insertInPlace, sanitizeInput, processWorkingEntry,
+							editSummary, manifest = [], workingEntry,
+							generateKeyValuePair, entries, pageName;
+							
+						/**
+						  * Sanitizes input for saving to wiki
+						  *
+						  * @param {string} s
+						  *
+						  * @return {string}
+						  */
+						sanitizeInput = function ( s ) {
+							return s
+								.replace( /\\/g, '\\\\' )
+							.replace( /\n/g, '<br />' );
+						};
 	
 						/**
-						 * Creates individual data to resemble that in template.
-						 */
-						generateGroupData = function ( k, v ) {
-							var res;
-							res = '| '.concat( k, ' = ' );
-							res += v + '\n';
+						  * Creates Lua-style key-value pairs, including converting the
+						  * audiences array into a proper sequential table.
+						  *
+						  * @param {string} k The key
+						  * @param {string} v The value
+						  *
+						  * @return {string}
+						  */
+						generateKeyValuePair = function ( k, v ) {
+							var res, jsonarray;
+							res = '\t\t'.concat( k, ' = ' );
+							v = sanitizeInput( v );
+							v = v.replace( /'/g, '\\\'' );
+							res += '\'' + v + '\'';
+							res += ',\n';
+							
 							return res;
 						};
 						
 						/**
 						 * Compares a given Wikimedia Resource Center entry against the
-						 * edit fields and applies changes where relevant.
+						 * edit fields and applies changes where necessary. Also, build the 
+						 * the group page Template here in order to create the group.
 						 *
 						 * @param {Object} workingEntry the entry being worked on
 						 * @return {Object} The same entry but with modifications
@@ -341,87 +421,103 @@
 							return workingEntry;
 						};
 						
-						workingEntry = {};
-						workingEntry = processWorkingEntry( workingEntry );
-						editSummary = 'Adding new group '.concat( workingEntry.name );
-						manifest.push( workingEntry );
-
-						// Re-generate the [[Connect/Groups]] table based on `manifest`
-						insertInPlace = '\n{{Connect listing\n';
-						insertGroupPage = '\n{{Connect group\n';
+						// Cycle through existing entries. If we are editing an existing
+						// entry, that entry will be modified in place.
+						entries = getContentModule( data.query.pages );
+	
+						for ( i = 0; i < entries.length; i++ ) {
+							workingEntry = cleanRawEntry( entries[ i ].value.fields );
+							if ( workingEntry.name == dialog.name ) {
+								if ( deleteFlag ) {
+									editSummary = 'Removing entry: '.concat( workingEntry.name );
+								} else {
+									workingEntry = processWorkingEntry( workingEntry );
+									editSummary = 'Editing entry: '.concat( workingEntry.name );
+								}
+							}
+							if ( workingEntry.name != dialog.name || !deleteFlag ) {
+								manifest.push( workingEntry );
+							}
+						}
+						
+						// No unique group name means this is a new entry
+						if ( !dialog.name ) {
+							workingEntry = {};
+							workingEntry = processWorkingEntry( workingEntry );
+							editSummary = gadgetMsg[ 'editor-ang-preeditsummary' ].concat( workingEntry.name );
+							manifest.push( workingEntry );
+						}
+						
+						// Re-generate the Lua table based on `manifest`
+						insertInPlace = 'return {\n';
 						for ( i = 0; i < manifest.length; i++ ) {
+							insertInPlace += '\t{\n';
 							if ( manifest[ i ].type ) {
-								insertInPlace += generateGroupData(
+								insertInPlace += generateKeyValuePair(
 									'type',
 									manifest[ i ].type
 								);
 							}
 							if ( manifest[ i ].name ) {
-								insertInPlace += generateGroupData(
+								insertInPlace += generateKeyValuePair(
 									'name',
-									manifest[ i ].name
+									manifest[ i ].name.replace( " ", "_" )
 								);
-								
 								// Save the page name
-								gpName = 'Connect/' + manifest[ i ].name;
+								pageName = 'Connect/' + manifest[ i ].name;
+								gpName = manifest[ i ].name;
 							}
 							if ( manifest[ i ].description ) {
-								insertInPlace += generateGroupData(
+								insertInPlace += generateKeyValuePair(
 									'description',
-									manifest[ i ].description
-								);
-								insertGroupPage += generateGroupData(
-									'introduction',
 									manifest[ i ].description
 								);
 							}
 							if ( manifest[ i ].icon ) {
-								insertInPlace += generateGroupData(
-									'icon',
-									manifest[ i ].icon
-								);
-								insertGroupPage += generateGroupData(
+								insertInPlace += generateKeyValuePair(
 									'icon',
 									manifest[ i ].icon
 								);
 							}
 							if ( manifest[ i ].facebook ) {
-								insertGroupPage += generateGroupData(
+								insertInPlace += generateKeyValuePair(
 									'facebook',
 									manifest[ i ].facebook
 								);
 							}
 							if ( manifest[ i ].twitter ) {
-								insertGroupPage += generateGroupData(
+								insertInPlace += generateKeyValuePair(
 									'twitter',
 									manifest[ i ].twitter
 								);
 							}
 							if ( manifest[ i ].youtube ) {
-								insertGroupPage += generateGroupData(
+								insertInPlace += generateKeyValuePair(
 									'youtube',
 									manifest[ i ].youtube
 								);
 							}
+							insertInPlace += '\t},\n';
 						}
-						insertInPlace += '}}\n';
-						// Finish building template for group connect
-						insertGroupPage += '}}\n[[Category:Connect groups|{{SUBPAGENAME}}]]\n';
+						insertInPlace += '}';
 						
-						// Get content of the [[m:Connect/Groups]] page
-						content = getContentModule( data.query.pages );
-						// Append new individual to entire page content
-						insertInPlace = content + insertInPlace;
+						// Build the invokation of the Lua script here
+						insertGroupPage += '<!--\nTo edit this page, please do so on [[Connect]]. ';
+						insertGroupPage += 'Click on the little pencil on the card corresponding ';
+						insertGroupPage += 'to the group and edit the details.\n-->\n';
+						insertGroupPage += '{{#invoke:Connect Groups|group_page|';
+						insertGroupPage += gpName;
+						insertGroupPage += '}}\n\n[[Category:Connect groups|{{SUBPAGENAME}}]]';
 						
-						// Now create the group page as sub-page of connect
 						new mw.Api().postWithToken(
 							'csrf',
 							{
 								action: 'edit',
-								title: gpName,  // Page name as sub-page of Connect
+								nocreate: true,
 								summary: editSummary,
-								text: insertGroupPage,
-								contentmodel: 'wikitext'
+								pageid: 10588351,  // Module:Wikimedia_Resource_Center/Groups
+								text: insertInPlace,
+								contentmodel: 'Scribunto'
 							}
 						).done( function () {
 							dialog.close();
@@ -433,20 +529,18 @@
 								location.reload();
 							} );
 						} ).fail( function () {
-							alert( 'Group page not created!' );
+							alert( gadgetMsg[ 'editor-ang-failed-alert' ] );
 							dialog.close();
 						} );
-	
-						// edit the [[m:Connect/Groups]] page and add new group
-						// stackable card via the api
+						
+						// Now create the group page as sub-page of connect
 						new mw.Api().postWithToken(
 							'csrf',
 							{
 								action: 'edit',
-								nocreate: true,
+								title: pageName,  // Page name as sub-page of Connect
 								summary: editSummary,
-								pageid: 10454753,  // Connect/Groups
-								text: insertInPlace,
+								text: insertGroupPage,
 								contentmodel: 'wikitext'
 							}
 						).done( function () {
@@ -490,15 +584,18 @@
 						icon: 'edit'
 					} ).on( 'click', function () {
 						new mw.Api().get( getContentGroups() ).done( function ( data ) {
-							var entryData, groupname, content;
+							var entryData, gpName, content;
 							
-							groupname = editButton.$element
-							.closest( '.wrc-card' )
-							.data( 'wrc-unique-id' );
-							
-							content = getContentModule( data.query.pages );
-							//entryData = getRelevantRawEntry( content, groupname );
-							
+							gpName = editButton.$element
+								.closest( '.wrc-card' )
+								.data( 'wrc-unique-id' );
+								
+							entryData = cleanRawEntry(
+								getRelevantRawEntry(
+									getContentModule( data.query.pages ),
+									gpName
+								)
+							);
 							openWindow( entryData );
 						} );
 					} );
