@@ -461,11 +461,11 @@
 							if ( manifest[ i ].name ) {
 								insertInPlace += generateKeyValuePair(
 									'name',
-									manifest[ i ].name.replace( " ", "_" )
+									manifest[ i ].name.split(" ").join("_")
 								);
 								// Save the page name
 								pageName = 'Connect/' + manifest[ i ].name;
-								gpName = manifest[ i ].name;
+								gpName = manifest[ i ].name.split(" ").join("_");
 							}
 							if ( manifest[ i ].description ) {
 								insertInPlace += generateKeyValuePair(
