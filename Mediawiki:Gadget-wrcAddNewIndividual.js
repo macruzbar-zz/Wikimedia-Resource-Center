@@ -5,9 +5,8 @@
  */
 ( function () {
 	'use strict';
-	
+
 	if ( mw.config.values.wgPageName.split('/')[0] == 'Connect' ) {
-		
 		mw.loader.using( [
 			'ext.gadget.luaparse',
 			'mediawiki.api',
@@ -574,7 +573,7 @@
 								);
 							}
 							if ( manifest[ i ].name ) {
-								name = manifest [ i ].name.replace( " ", "_" );
+								name = manifest [ i ].name.split(" ").join("_");
 								insertInPlace += generateKeyValuePair(
 									'name', name
 								);
